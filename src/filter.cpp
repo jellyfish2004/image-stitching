@@ -1,6 +1,7 @@
 #include "filter.h"
 #include <cmath>
 #include <algorithm>
+#include "timing.h"
 
 // gaussian kernels, convolutions, up/down sampling
 // parallel - openacc convolutions and up/down sampling
@@ -43,6 +44,7 @@ static inline float clamped_at(const Image& img, int x, int y, int c) {
 
 
 Image convolve_horizontal(const Image& img, const std::vector<float>& kernel) {
+    double t0 = get_time();
     int radius = static_cast<int>(kernel.size()) / 2;
     Image dst(img.width, img.height, img.channels);
 
@@ -68,10 +70,12 @@ Image convolve_horizontal(const Image& img, const std::vector<float>& kernel) {
         }
     }
 
+    total_t_convolve += (get_time() - t0);
     return dst;
 }
 
 Image convolve_vertical(const Image& img, const std::vector<float>& kernel) {
+    double t0 = get_time();
     int radius = static_cast<int>(kernel.size()) / 2;
     Image dst(img.width, img.height, img.channels);
 
@@ -97,6 +101,7 @@ Image convolve_vertical(const Image& img, const std::vector<float>& kernel) {
         }
     }
 
+    total_t_convolve += (get_time() - t0);
     return dst;
 }
 
@@ -108,6 +113,7 @@ Image gaussian_blur(const Image& img, float sigma) {
 
 
 Image downsample_2x(const Image& img) {
+    double t0 = get_time();
     int w = img.width  / 2;
     int h = img.height / 2;
     Image dst(w, h, img.channels);
@@ -127,11 +133,13 @@ Image downsample_2x(const Image& img) {
         }
     }
 
+    total_t_downsample += (get_time() - t0);
     return dst;
 }
 
 // bilinear interp
 Image upsample_2x(const Image& img) {
+    double t0 = get_time();
     int w = img.width  * 2;
     int h = img.height * 2;
     Image dst(w, h, img.channels);
@@ -179,5 +187,6 @@ Image upsample_2x(const Image& img) {
         }
     }
 
+    total_t_upsample += (get_time() - t0);
     return dst;
 }

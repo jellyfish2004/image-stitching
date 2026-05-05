@@ -8,11 +8,13 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <chrono>
+#include "timing.h"
 
-inline double get_time() {
-    return std::chrono::duration<double>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-}
+double total_t_dog = 0.0;
+double total_t_gauss = 0.0;
+double total_t_downsample = 0.0;
+double total_t_upsample = 0.0;
+double total_t_convolve = 0.0;
 
 int main(int argc, char** argv) {
     if (argc < 3) {
@@ -83,6 +85,7 @@ int main(int argc, char** argv) {
     Image result = blend_simple(warped, img2, canvas);
     printf("  [Timing] Blend: %.4f s\n", get_time() - t0);
 
+
     printf("\nSaving outputs...\n");
     t0 = get_time();
     save_image("stitched.png", result);
@@ -93,6 +96,13 @@ int main(int argc, char** argv) {
     printf("  [Timing] Save outputs: %.4f s\n", get_time() - t0);
 
     printf("\n  [Timing] Total execution time: %.4f s\n", get_time() - t_total_start);
+
+    printf("\n  [Accumulated Timings]\n");
+    printf("    Gaussian Pyramid : %.4f s\n", total_t_gauss);
+    printf("    DoG Pyramid      : %.4f s\n", total_t_dog);
+    printf("    Convolutions     : %.4f s\n", total_t_convolve);
+    printf("    Downsampling     : %.4f s\n", total_t_downsample);
+    printf("    Upsampling       : %.4f s\n", total_t_upsample);
 
     printf("\n Done!\n");
     printf("  stitched.png     - final stitched panorama\n");

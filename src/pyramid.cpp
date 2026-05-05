@@ -1,6 +1,6 @@
 #include "pyramid.h"
 #include "filter.h"
-
+#include "timing.h"
 #include <cmath>
 
 
@@ -8,6 +8,7 @@ GaussianPyramid build_gaussian_pyramid(const Image& base,
                                         int num_octaves,
                                         int scales_per_octave,
                                         float sigma0) {
+    double t0 = get_time();
     GaussianPyramid pyr;
     pyr.num_octaves       = num_octaves;
     pyr.scales_per_octave = scales_per_octave;
@@ -46,12 +47,14 @@ GaussianPyramid build_gaussian_pyramid(const Image& base,
         }
     }
 
+    total_t_gauss += (get_time() - t0);
     return pyr;
 }
 
 // Build DoG Pyramid
 // DoG is used to approximate LoG
 DoGPyramid build_dog_pyramid(const GaussianPyramid& gauss) {
+    double t0 = get_time();
     DoGPyramid dog;
     dog.octaves.resize(gauss.num_octaves);
 
@@ -75,5 +78,6 @@ DoGPyramid build_dog_pyramid(const GaussianPyramid& gauss) {
         }
     }
 
+    total_t_dog += (get_time() - t0);
     return dog;
 }
