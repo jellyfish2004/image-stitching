@@ -8,6 +8,11 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <chrono>
+
+inline double get_time() {
+    return std::chrono::duration<double>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+}
 
 int main(int argc, char** argv) {
     if (argc < 3) {
@@ -15,24 +20,34 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    double t_total_start = get_time();
+
     printf("Loading images...\n");
+    double t0 = get_time();
     Image img1 = load_image(argv[1]);
     Image img2 = load_image(argv[2]);
     printf("Image 1: %d x %d x %d\n", img1.width, img1.height, img1.channels);
     printf("Image 2: %d x %d x %d\n", img2.width, img2.height, img2.channels);
+    printf("  [Timing] Image loading: %.4f s\n", get_time() - t0);
 
     printf("\n SIFT Feature Detection & Description...\n");
 
     printf("Processing Image 1...\n");
+    t0 = get_time();
     Image gray1 = rgb_to_grayscale(img1);
     auto kp1 = sift_detect_and_describe(gray1);
+    printf("  [Timing] SIFT Image 1: %.4f s\n", get_time() - t0);
 
     printf("Processing Image 2...\n");
+    t0 = get_time();
     Image gray2 = rgb_to_grayscale(img2);
     auto kp2 = sift_detect_and_describe(gray2);
+    printf("  [Timing] SIFT Image 2: %.4f s\n", get_time() - t0);
 
     printf("\n Feature Matching (Lowe Ratio Test)...\n");
+    t0 = get_time();
     auto matches = match_features(kp1, kp2);
+    printf("  [Timing] Matching: %.4f s\n", get_time() - t0);
 
     if (matches.size() < 4) {
         fprintf(stderr, "Not enough matches (%zu) to compute homography.\n",
@@ -41,12 +56,14 @@ int main(int argc, char** argv) {
     }
 
     printf("\n Homography Estimation (RANSAC + DLT/SVD)...");
+    t0 = get_time();
     Mat3 H;
     int inliers = ransac_homography(kp1, kp2, matches, H);
     if (inliers == 0) {
-        fprintf(stderr, "Homography estimation failed.\n");
+        fprintf(stderr, "\nHomography estimation failed.\n");
         return 1;
     }
+    printf(" done.\n  [Timing] Homography: %.4f s\n", get_time() - t0);
 
     printf("Homography matrix:\n");
     for (int r = 0; r < 3; ++r) {
@@ -55,19 +72,27 @@ int main(int argc, char** argv) {
     }
 
     printf("\n Perspective Warp...\n");
+    t0 = get_time();
     Canvas canvas = compute_canvas_size(H, img1, img2);
     Mat3 H_inv = invert_homography(H);
     Image warped = warp_image(img1, H_inv, canvas);
+    printf("  [Timing] Warp: %.4f s\n", get_time() - t0);
 
     printf("\n Panorama Blend...\n");
+    t0 = get_time();
     Image result = blend_simple(warped, img2, canvas);
+    printf("  [Timing] Blend: %.4f s\n", get_time() - t0);
 
     printf("\nSaving outputs...\n");
+    t0 = get_time();
     save_image("stitched.png", result);
 
     save_keypoints_image(img1, kp1, "keypoints1.png");
     save_keypoints_image(img2, kp2, "keypoints2.png");
     save_matches_image(img1, img2, kp1, kp2, matches, "matches.png");
+    printf("  [Timing] Save outputs: %.4f s\n", get_time() - t0);
+
+    printf("\n  [Timing] Total execution time: %.4f s\n", get_time() - t_total_start);
 
     printf("\n Done!\n");
     printf("  stitched.png     - final stitched panorama\n");
